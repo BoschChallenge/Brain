@@ -43,50 +43,54 @@ def gstreamer_pipeline(
         )
     )
 
-def sign_detect():
-    window_title = "CSI Camera"
-    model = YOLO("best.pt")
-    # To flip the image, modify the flip_method parameter (0 and 2 are the most common)
-    # print(gstreamer_pipeline(flip_method=0))
-    video_capture = cv2.VideoCapture(gstreamer_pipeline(), cv2.CAP_GSTREAMER)
-    video_capture.set(cv2.CAP_PROP_BUFFERSIZE, 1)
+class SignDetection:
+    def __init__(self)->None:
+        pass
+
+    def sign_detect(self):
+        window_title = "CSI Camera"
+        model = YOLO("best.pt")
+        # To flip the image, modify the flip_method parameter (0 and 2 are the most common)
+        # print(gstreamer_pipeline(flip_method=0))
+        video_capture = cv2.VideoCapture(gstreamer_pipeline(), cv2.CAP_GSTREAMER)
+        video_capture.set(cv2.CAP_PROP_BUFFERSIZE, 1)
+        
+        try:
+            if video_capture.isOpened():
+                window_handle = cv2.namedWindow(window_title, cv2.WINDOW_AUTOSIZE)
+                while True:
+                    ret, frame = video_capture.read()
+
+                    if not ret:
+                        print("Error reading frame")
+                        break
+
+                    cv2.imshow(window_title, frame)
+                    results = model(source=frame, show=True, verbose=False, conf=0.5)
+
+                    for result in results:
+                        detection_count = result.boxes.shape[0]
+
+                        for i in range(detection_count):
+                            cls = int(result.boxes.cls[i].item())
+                            name = result.names[cls]
+                            print("Name: ", name)
+
+                    # Break the loop if 'q' key is pressed
+                    if cv2.waitKey(1) & 0xFF == ord('q'):
+                        break
+
+                # if ret_val:
+                #    if cv2.getWindowProperty(window_title, cv2.WND_PROP_AUTOSIZE) >= 0:
+                #        cv2.imshow(window_title, frame)
+                #    cv2.waitKey(10)
+            else:
+                print("Error: Unable to open camera")
+        except Exception as e:
+            print(e)
     
-    try:
-        if video_capture.isOpened():
-            window_handle = cv2.namedWindow(window_title, cv2.WINDOW_AUTOSIZE)
-            while True:
-                ret, frame = video_capture.read()
-
-                if not ret:
-                    print("Error reading frame")
-                    break
-
-                cv2.imshow(window_title, frame)
-                results = model(source=frame, show=True, verbose=False, conf=0.5)
-
-                for result in results:
-                    detection_count = result.boxes.shape[0]
-
-                    for i in range(detection_count):
-                        cls = int(result.boxes.cls[i].item())
-                        name = result.names[cls]
-                        print("Name: ", name)
-
-                # Break the loop if 'q' key is pressed
-                if cv2.waitKey(1) & 0xFF == ord('q'):
-                    break
-
-            # if ret_val:
-            #    if cv2.getWindowProperty(window_title, cv2.WND_PROP_AUTOSIZE) >= 0:
-            #        cv2.imshow(window_title, frame)
-            #    cv2.waitKey(10)
-        else:
-            print("Error: Unable to open camera")
-    except Exception as e:
-        print(e)
-  
-    video_capture.release()
-    cv2.destroyAllWindows()
+        video_capture.release()
+        cv2.destroyAllWindows()
 
 if __name__ == "__main__":
     sign_detect()

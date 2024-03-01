@@ -1,12 +1,13 @@
 from ultralytics import YOLO
 from ultralytics.models.yolo.detect import DetectionValidator
 import cv2
-import numpy as np
-from Distance import calculate_distance
+import numpy
+from Distance import SignDistance
 
 model = YOLO("best.pt")
+SD = SignDistance()
 
-cap = cv2.VideoCapture(0)
+cap = cv2.VideoCapture("full_hd14.264")
 i = 0
 try:
     while True:
@@ -28,7 +29,7 @@ try:
                 
                 print("\nName: ", name)
                 array = (result.boxes.xywh.numpy()).reshape(4)
-                distance = calculate_distance(array[2])
+                distance = SD.calculate_distance(array[2])
                 print("Distance:",distance)
 
         # Break the loop if 'q' key is pressed
