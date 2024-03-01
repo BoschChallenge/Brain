@@ -2,6 +2,7 @@ import torch
 import pathlib
 import cv2
 import logging
+from Distance import SignDistance
 temp = pathlib.PosixPath
 pathlib.PosixPath = pathlib.WindowsPath
 
@@ -9,6 +10,9 @@ pathlib.PosixPath = pathlib.WindowsPath
 model = torch.hub.load('yolov5', 'custom', path='best.pt',source='local')  # local model
 
 pathlib.PosixPath = temp
+
+#Class for calculating sign distance
+SD = SignDistance()
 
 #model = torch.hub.load('yolov5\\.','custom',path = 'C:\\Users\\milos\\Documents\\BoschChallenge\\Modelv5\\best.pt',source='local', force_reload=True)
 
@@ -48,7 +52,9 @@ def sign_detect():
                 for value in prediction_wh:
                     width = value[2]
                     height = value[3]
+                    distance = SD.calculate_distance(width)
                     print(f"Width: {width}\nHeight: {height}\n")
+                    print(f"Distance: {distance}\n")
 
 
                 # Break the loop if 'q' key is pressed
