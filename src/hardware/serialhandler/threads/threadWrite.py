@@ -76,9 +76,9 @@ class threadWrite(ThreadWithStop):
         self.subscribe()
         self.Queue_Sending()
         if example:
-            self.i = 0.0
-            self.j = -1.0
-            self.s = 0.0
+            self.i = 20.0
+            self.j = 0
+            self.s = 10.0
             self.example()
 
     def subscribe(self):
@@ -150,6 +150,7 @@ class threadWrite(ThreadWithStop):
             try:
                 if self.pipeRecvRunningSignal.poll():
                     msg = self.pipeRecvRunningSignal.recv()
+                    print(f"ThreadWrite msg running: {msg}")
                     if msg["value"] == True:
                         self.running = True
                     else:

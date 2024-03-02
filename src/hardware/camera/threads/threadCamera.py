@@ -28,6 +28,7 @@
 import cv2
 import threading
 import base64
+# import picamera2
 import time
 
 from multiprocessing import Pipe
@@ -123,16 +124,13 @@ class threadCamera(ThreadWithStop):
             )
         threading.Timer(1, self.Configs).start()
 
-    # prilikom kreiranja ove klase u konstrukturu se prosledjuju sve stvari za inicijalizaciju izmedju
-    # toga i queue u koji ce se ubacivati frame sa kamere koji se snimi i to konkretno u general.
     # ================================ RUN ================================================
     def run(self):
         """This function will run while the running flag is True. It captures the image from camera and make the required modifies and then it send the data to process gateway."""
         var = True
         while self._running:
             try:
-                if self.pipeRecvRecord.poll():# Ovo govori dal ima poruka na pipe
-                    # Ovde ce biti problem ovo izmeniti da uzima sa prave kamere morace sve da se zakomentarise
+                if self.pipeRecvRecord.poll():
                     msg = self.pipeRecvRecord.recv()
                     self.recording = msg["value"]
                     if msg["value"] == False:
@@ -150,24 +148,20 @@ class threadCamera(ThreadWithStop):
             except Exception as e:
                 print(e)
             if self.debugger == True:
-                # Postavlja se flag logger
                 self.logger.warning("getting image")
             request = self.camera.capture_array("main")
             if var:
-                # Proces zahtevanja slike
                 if self.recording == True:
                     cv2_image = cv2.cvtColor(request, cv2.COLOR_RGB2BGR)
                     self.video_writer.write(cv2_image)
                 request2 = self.camera.capture_array(
                     "lores"
                 )  # Will capture an array that can be used by OpenCV library
-                # Proces kodiranja slike
                 request2 = request2[:360, :]
                 _, encoded_img = cv2.imencode(".jpg", request2)
                 _, encoded_big_img = cv2.imencode(".jpg", request)
                 image_data_encoded = base64.b64encode(encoded_img).decode("utf-8")
                 image_data_encoded2 = base64.b64encode(encoded_big_img).decode("utf-8")
-                # Ovde se konkretno stavljaju te slike u taj queue, mislim da je ovo mainCamera.Queue.value constanta za "General" 
                 self.queuesList[mainCamera.Queue.value].put(
                     {
                         "Owner": mainCamera.Owner.value,
@@ -191,9 +185,39 @@ class threadCamera(ThreadWithStop):
         super(threadCamera, self).start()
 
     # ================================ INIT CAMERA ========================================
+
+    def gstreamer_pipeline(self,
+    sensor_id=0,
+    capture_width=1920,
+    capture_height=1080,
+    display_width=960,
+    display_height=540,
+    framerate=30,
+    flip_method=0,
+    ):
+    
+        return (
+            "nvarguscamerasrc sensor-id=%d ! "
+            "video/x-raw(memory:NVMM), width=(int)%d, height=(int)%d, framerate=(fraction)%d/1 ! "
+            "nvvidconv flip-method=%d ! "
+            "video/x-raw, width=(int)%d, height=(int)%d, format=(string)BGRx ! "
+            "videoconvert ! "
+            "video/x-raw, format=(string)BGR ! appsink"
+            % (
+                sensor_id,
+                capture_width,
+                capture_height,
+                framerate,
+                flip_method,
+                display_width,
+                display_height,
+            )
+        )
+
     def _init_camera(self):
         """This function will initialize the camera object. It will make this camera object have two chanels "lore" and "main"."""
-        self.camera = cv2.VideoCapture(0)
+        # self.camera = picamera2.Picamera2()
+        self.camera = self.gstreamer_pipeline()
         # config = self.camera.create_preview_configuration(
         #     buffer_count=1,
         #     queue=False,
@@ -201,6 +225,5 @@ class threadCamera(ThreadWithStop):
         #     lores={"size": (480, 360)},
         #     encode="lores",
         # )
-        #self.camera.configure(config)
-        #self.camera.start()
-        
+        # self.camera.configure(config)
+        # self.camera.start()

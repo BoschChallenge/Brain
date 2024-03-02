@@ -4,9 +4,10 @@ if __name__ == "__main__":
     sys.path.insert(0, "../..")
 
 from src.computer_vision.lineDetection.LineDetection import LineDetect
-# from src.hardware.serialhandler.processSerialHandler import processSerialHandler
+from src.hardware.serialhandler.processSerialHandler import processSerialHandler
+from main import queueList
 
-from threading import Thread
+from threading import Thread, Timer
 from multiprocessing import Queue, Pipe
 import logging
 import time
@@ -71,41 +72,18 @@ class Pid():
 
         return pid  
 
-    def set_desired_angle(self):
+    def set_desired_angle(self, angle):
 
-        # def example(self):
-        # """This function simulte the movement of the car."""
-        # if self.exampleFlag:
-        #     self.pipeSendRunningSignal.send({"Type": "Run", "value": True})
-        #     self.pipeSendSpeed.send({"Type": "Speed", "value": self.s})
-        #     self.pipeSendSteer.send({"Type": "Steer", "value": self.i})
-        #     self.i += self.j
-        #     if self.i >= 21.0:
-        #         self.i = 21.0
-        #         self.s = self.i / 7
-        #         self.j *= -1
-        #     if self.i <= -21.0:
-        #         self.i = -21.0
-        #         self.s = self.i / 7
-        #         self.j *= -1.0
-        #     threading.Timer(0.01, self.example).start()
 
-        allProcesses = list()
-        debugg = False
-        # We have a list of multiprocessing.Queue() which individualy represent a priority for processes.
-        queueList = {
-            "Critical": Queue(),
-            "Warning": Queue(),
-            "General": Queue(),
-            "Config": Queue(),
-        }
-        logger = logging.getLogger()
-        pipeRecv, pipeSend = Pipe(duplex=False)
-        process = processSerialHandler(queueList, logger, debugg, True)
-        process.daemon = True
-        process.start()
-        time.sleep(4)  # modify the value to increase/decrease the time of the example
-        process.stop()
+        data = {"Type": "Steer", "value": angle}
+        queueList["General"].put(data)
+
+
+    def set_desired_speed(self, speed):
+
+        self.pipeSendRunningSignal.send({"Type": "Run", "value": True})
+        self.pipeSendSpeed.send({"Type": "Speed", "value": self.s})
+
 
     def set_desired_speed(self):
         pass
@@ -115,7 +93,11 @@ if __name__ == "__main__":
     import cv2
 
     try:
-        pid = Pid()
+        # pid = Pid()
+
+        data = {"Type": "Steer", "value": 20}
+        queueList["General"].put(data)
+
 
     except KeyboardInterrupt:
 

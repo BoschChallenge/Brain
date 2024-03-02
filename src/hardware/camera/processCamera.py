@@ -89,7 +89,7 @@ if __name__ == "__main__":
 
     allProcesses = list()
 
-    debugg = True
+    debugg = False
 
     queueList = {
         "Critical": Queue(),
