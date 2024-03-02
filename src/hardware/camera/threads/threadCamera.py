@@ -28,7 +28,6 @@
 import cv2
 import threading
 import base64
-import picamera2
 import time
 
 from multiprocessing import Pipe
@@ -132,8 +131,8 @@ class threadCamera(ThreadWithStop):
         var = True
         while self._running:
             try:
-                if self.pipeRecvRecord.poll():
-                    # Ovde ce biti proble ovo izmeniti da uzima sa prave kamere morace sve da se zakomentarise
+                if self.pipeRecvRecord.poll():# Ovo govori dal ima poruka na pipe
+                    # Ovde ce biti problem ovo izmeniti da uzima sa prave kamere morace sve da se zakomentarise
                     msg = self.pipeRecvRecord.recv()
                     self.recording = msg["value"]
                     if msg["value"] == False:
@@ -168,8 +167,7 @@ class threadCamera(ThreadWithStop):
                 _, encoded_big_img = cv2.imencode(".jpg", request)
                 image_data_encoded = base64.b64encode(encoded_img).decode("utf-8")
                 image_data_encoded2 = base64.b64encode(encoded_big_img).decode("utf-8")
-                # Ovde se konkretno Guraju te slike u taj queue, jedino pogledaj u sta se gura mislim da je
-                # ovo mainCamera.Queue.value constanta za "General" al proveri to
+                # Ovde se konkretno stavljaju te slike u taj queue, mislim da je ovo mainCamera.Queue.value constanta za "General" 
                 self.queuesList[mainCamera.Queue.value].put(
                     {
                         "Owner": mainCamera.Owner.value,
@@ -195,13 +193,14 @@ class threadCamera(ThreadWithStop):
     # ================================ INIT CAMERA ========================================
     def _init_camera(self):
         """This function will initialize the camera object. It will make this camera object have two chanels "lore" and "main"."""
-        self.camera = picamera2.Picamera2()
-        config = self.camera.create_preview_configuration(
-            buffer_count=1,
-            queue=False,
-            main={"format": "XBGR8888", "size": (2048, 1080)},
-            lores={"size": (480, 360)},
-            encode="lores",
-        )
-        self.camera.configure(config)
-        self.camera.start()
+        self.camera = cv2.VideoCapture(0)
+        # config = self.camera.create_preview_configuration(
+        #     buffer_count=1,
+        #     queue=False,
+        #     main={"format": "XBGR8888", "size": (2048, 1080)},
+        #     lores={"size": (480, 360)},
+        #     encode="lores",
+        # )
+        #self.camera.configure(config)
+        #self.camera.start()
+        

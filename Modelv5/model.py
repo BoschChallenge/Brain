@@ -16,9 +16,6 @@ signDistance = SignDistance()
 
 #model = torch.hub.load('yolov5\\.','custom',path = 'C:\\Users\\milos\\Documents\\BoschChallenge\\Modelv5\\best.pt',source='local', force_reload=True)
 
-# Image
-im = 'proba.jpg'
-
 logging.getLogger("utils.general").setLevel(logging.WARNING)
 
 class SignDetect:

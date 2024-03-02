@@ -51,18 +51,18 @@ from src.data.TrafficCommunication.processTrafficCommunication import (
 
 # ======================================== SETTING UP ====================================
 allProcesses = list()
-queueList = {
+queueList = {#Ovo nije implementirano tacno mi sami treba da dodelimo koliko CPU hocemo za Critical koliko za Warning
     "Critical": Queue(),
     "Warning": Queue(),
     "General": Queue(),
     "Config": Queue(),
 }
 
-logging = logging.getLogger()
+logging = logging.getLogger() #Koristi se za Debuging
 
 TrafficCommunication = True
 Camera = True
-PCCommunicationDemo = True
+PCCommunicationDemo = True#Ako hocemo da koristimo Dashboard onda na False
 CarsAndSemaphores = True
 SerialHandler = True
 # ===================================== SETUP PROCESSES ==================================
