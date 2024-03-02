@@ -4,14 +4,12 @@ if __name__ == "__main__":
     sys.path.insert(0, "../..")
 
 from src.computer_vision.lineDetection.LineDetection import LineDetect
-from src.hardware.serialhandler.processSerialHandler import processSerialHandler
+# from src.hardware.serialhandler.processSerialHandler import processSerialHandler
 
 from threading import Thread
 from multiprocessing import Queue, Pipe
 import logging
 import time
-
-
 
 class Pid():
 
@@ -22,19 +20,27 @@ class Pid():
         
         self.LINE_THREAD = True
 
-        self.DESIRED_DISTANCE = 150
+        self.DESIRED_DISTANCE = 400
         self.MAX_PID = 22
 
-        self.Kp = 5
+        self.Kp = 0.05
 
         self.linedetector = LineDetect()
-        ld_thread = Thread(target=self.start, args=(self.frame))
+        ld_thread = Thread(target=self.start)
         ld_thread.start()
 
-    def start(self, frame=None):
-        
+    def start(self):
+        cap = cv2.VideoCapture("full_hd2.mp4")
         while self.LINE_THREAD:
-            self.dist_packet = self.linedetector.detect(frame)
+            ret, frame = cap.read()
+            if not ret:
+                break
+
+            current_time = cap.get(cv2.CAP_PROP_POS_MSEC) / 1000.0
+            # Print the current video time
+            print("Current video time: {:.2f} seconds".format(current_time))
+
+            self.dist_packet = self.linedetector.detect_lines(frame)
             self.calculate_pid()
 
     def stop(self):
@@ -42,9 +48,16 @@ class Pid():
 
     def calculate_pid(self):
 
-        actual_distance, actual_angle, actual_line = self.dist_packet
+        try:
+            actual_distance, actual_angle, actual_line = self.dist_packet
+
+        except Exception as ex:
+             print(f"Error distance reading {ex}")
+
 
         error = self.DESIRED_DISTANCE - actual_distance
+
+        print(f"actual_distance: {actual_distance}, error: {error}")
 
         pid = self.Kp * error 
 
@@ -101,10 +114,17 @@ class Pid():
 if __name__ == "__main__":
     import cv2
 
-    cap = cv2.VideoCapture("src\computer_vision\lineDetection\full_hd2.mp4")
-    ret,frame = cap.read()
+    try:
+        pid = Pid()
 
-    pid = Pid()
+    except KeyboardInterrupt:
+
+        self.LINE_THREAD = False
+        # Handle keyboard interrupt gracefully
+        print("Keyboard interrupt detected. Exiting...")
+
+
+    
 
     
         
