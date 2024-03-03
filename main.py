@@ -32,12 +32,12 @@ import sys
 sys.path.append(".")
 from multiprocessing import Queue, Event
 import logging
-import time
 
+# Radi kada obrises openssl paket iz dobre instalacije pythona
 
 # ===================================== PROCESS IMPORTS ==================================
 from src.gateway.processGateway import processGateway
-# from src.hardware.camera.processCamera import processCamera
+from src.hardware.camera.processCamera import processCamera
 from src.hardware.serialhandler.processSerialHandler import processSerialHandler
 from src.utils.PCcommunicationDemo.processPCcommunication import (
     processPCCommunicationDemo,
@@ -45,12 +45,6 @@ from src.utils.PCcommunicationDemo.processPCcommunication import (
 from src.utils.PCcommunicationDashBoard.processPCcommunication import (
     processPCCommunicationDashBoard,
 )
-
-from src.utils.messages.allMessages import (
-    SteerMotor,
-    SignalRunning,
-)
-
 from src.data.CarsAndSemaphores.processCarsAndSemaphores import processCarsAndSemaphores
 from src.data.TrafficCommunication.processTrafficCommunication import (
     processTrafficCommunication,
@@ -68,14 +62,14 @@ queueList = {
 logging = logging.getLogger()
 
 TrafficCommunication = False
-Camera = False
+Camera = True
 PCCommunicationDemo = False
 CarsAndSemaphores = False
-SerialHandler = True
+SerialHandler = False
 # ===================================== SETUP PROCESSES ==================================
 
 # Initializing gateway
-processGateway = processGateway(queueList, logging, debugging=True)
+processGateway = processGateway(queueList, logging)
 allProcesses.append(processGateway)
 
 # Initializing camera
@@ -112,31 +106,6 @@ if SerialHandler:
 for process in allProcesses:
     process.daemon = True
     process.start()
-
-
-time.sleep(5)
-
-queueList[SignalRunning.Queue.value].put(
-        {
-            "Owner": SteerMotor.Owner.value,
-            "msgID": SteerMotor.msgID.value,
-            "msgType": SteerMotor.msgType.value,
-            # "msgValue": "Type": "action": "2", "value": 12.0,
-            "msgValue": True
-        }
-    )
-
-queueList[SteerMotor.Queue.value].put(
-        {
-            "Owner": SteerMotor.Owner.value,
-            "msgID": SteerMotor.msgID.value,
-            "msgType": SteerMotor.msgType.value,
-            # "msgValue": "Type": "action": "2", "value": 12.0,
-            "msgValue": "steer", "value": 15.0
-        }
-    )
-
-print("Msgs sent!")
 
 # ===================================== STAYING ALIVE ====================================
 blocker = Event()
