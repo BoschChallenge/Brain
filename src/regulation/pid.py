@@ -3,128 +3,118 @@ if __name__ == "__main__":
     print(sys.path)
     sys.path.insert(0, "../..")
 
-from src.computer_vision.lineDetection.LineDetection import LineDetect
 from src.hardware.serialhandler.processSerialHandler import processSerialHandler
-from brain.main import queueList
+from src.templates.workerprocess import WorkerProcess
+from src.regulation.threads.threadPid import threadPid
+from src.utils.messages.allMessages import lineInformation
 
-from threading import Thread, Timer
+
 from multiprocessing import Queue, Pipe
 import logging
 import time
 
-class Pid():
+class processPid(WorkerProcess):
 
-    def __init__(self):
-
-        self.frame = None
-        self.dist_packet = 0
+    def __init__(self, queueList, logging, debugging=False):
+        self.queuesList = queueList
+        self.logging = logging
+        pipeRecv, pipeSend = Pipe(duplex=False)
+        self.pipeRecv = pipeRecv
+        self.pipeSend = pipeSend
+        self.debugging = debugging
+        super(processPid, self).__init__(self.queuesList)
         
-        self.LINE_THREAD = True
-
-        self.DESIRED_DISTANCE = 400
-        self.MAX_PID = 22
-
-        self.Kp = 0.05
-
-        self.linedetector = LineDetect()
-        ld_thread = Thread(target=self.start)
-        ld_thread.start()
-
-    def start(self):
-        cap = cv2.VideoCapture("full_hd2.mp4")
-        while self.LINE_THREAD:
-            ret, frame = cap.read()
-            if not ret:
-                break
-
-            current_time = cap.get(cv2.CAP_PROP_POS_MSEC) / 1000.0
-            # Print the current video time
-            print("Current video time: {:.2f} seconds".format(current_time))
-
-            self.dist_packet = self.linedetector.detect_lines(frame)
-            self.calculate_pid()
-
     def stop(self):
-        pass
+        """Function for stopping threads and the process."""
+        for thread in self.threads:
+            thread.stop()
+            thread.join()
+        super(processPid, self).stop()
 
-    def calculate_pid(self):
+    # ===================================== RUN ==========================================
+    def run(self):
+        """Apply the initializing methods and start the threads."""
+        super(processPid, self).run()
 
-        try:
-            actual_distance, actual_angle, actual_line = self.dist_packet
-
-        except Exception as ex:
-             print(f"Error distance reading {ex}")
-
-
-        error = self.DESIRED_DISTANCE - actual_distance
-
-        print(f"actual_distance: {actual_distance}, error: {error}")
-
-        pid = self.Kp * error 
-
-        if pid >= self.MAX_PID:
-            pid = self.MAX_PID
-
-        elif pid <= -self.MAX_PID:
-            pid = -self.MAX_PID
-
-        print(f"Steraing angle: {pid}")
-
-        return pid  
-
-    def set_desired_angle(self, angle):
-
-
-        queueList[SteerMotor.Queue.value].put(
-        {
-            "Owner": SteerMotor.Owner.value,
-            "msgID": SteerMotor.msgID.value,
-            "msgType": SteerMotor.msgType.value,
-            # "msgValue": "Type": "action": "2", "value": 12.0,
-            "msgValue": 15.0 #{
-            #     "action":"steer", 
-            #     "value": 15.0
-            # }
-        }
-    )
-
-
-    def set_desired_speed(self, speed):
-        
-        queueList[SpeedMotor.Queue.value].put(
-        {
-            "Owner": SpeedMotor.Owner.value,
-            "msgID": SpeedMotor.msgID.value,
-            "msgType": SpeedMotor.msgType.value,
-            # "msgValue": "Type": "action": "2", "value": 12.0,
-            "msgValue": 20.0 #{
-            #     "action":"steer", 
-            #     "value": 15.0
-            # }
-        }
-    )
-        
-
-
-    def set_desired_speed(self):
-        pass
+    # ===================================== INIT TH ======================================
+    def _init_threads(self):
+        """Create the Camera Publisher thread and add to the list of threads."""
+        pidTh = threadPid(
+            self.pipeRecv, self.pipeSend, self.queuesList, self.logging, self.debugging
+        )
+        self.threads.append(pidTh)
 
 
 if __name__ == "__main__":
+    
+    from multiprocessing import Queue, Event
+    import time
+    import logging
     import cv2
+    import base64
+    import numpy as np
+
+    allProcesses = list()
+
+    debugg = True
+
+    queueList = {
+        "Critical": Queue(),
+        "Warning": Queue(),
+        "General": Queue(),
+        "Config": Queue(),
+    }
+
+    logger = logging.getLogger()
+
+    process = processPid(queueList, logger, debugg)
+
+    process.daemon = True
+
+    time.sleep(4)
 
     try:
-        # pid = Pid()
+        process.start()
+        time.sleep(5)
+        out_line_message = {
+            "length"      : 10,
+            "angle" : 1.57,
+            "right_line"   : True
+        }
 
-        data = {"Type": "Steer", "value": 20}
-        queueList["General"].put(data)
-
-
+    
+        queueList[lineInformation.Queue.value].put(
+            {
+                "Owner": lineInformation.Owner.value,
+                "msgID": lineInformation.msgID.value,
+                "msgType": lineInformation.msgType.value,
+                "msgValue": out_line_message,
+            }
+        )
+        
+        print("message sent")
+        
+        while True:
+            
+            pass
+            # if debugg:
+            #     logger.warning("getting")
+            # img = {"msgValue": 1}
+            # while type(img["msgValue"]) != type(":text"):
+            #     img = queueList["General"].get()
+            # image_data = base64.b64decode(img["msgValue"])
+            # img = np.frombuffer(image_data, dtype=np.uint8)
+            # image = cv2.imdecode(img, cv2.IMREAD_COLOR)
+            # if debugg:
+            #     logger.warning("got")
+            # cv2.imshow("frame", image)
+            # cv2.waitKey(1)
     except KeyboardInterrupt:
+        pass
+    except Exception as e:
+        print(e)
 
-        self.LINE_THREAD = False
-        # Handle keyboard interrupt gracefully
-        print("Keyboard interrupt detected. Exiting...")
+    process.stop()
 
 
     
