@@ -34,6 +34,7 @@ from multiprocessing import Queue, Event
 import logging
 import time
 
+# Radi kada obrises openssl paket iz dobre instalacije pythona
 
 # ===================================== PROCESS IMPORTS ==================================
 from src.gateway.processGateway import processGateway
@@ -70,14 +71,14 @@ queueList = {
 logging = logging.getLogger()
 
 TrafficCommunication = False
-Camera = False
+Camera = True
 PCCommunicationDemo = False
 CarsAndSemaphores = False
-SerialHandler = True
+SerialHandler = False
 # ===================================== SETUP PROCESSES ==================================
 
 # Initializing gateway
-processGateway = processGateway(queueList, logging, debugging=True)
+processGateway = processGateway(queueList, logging)
 allProcesses.append(processGateway)
 
 # Initializing camera
