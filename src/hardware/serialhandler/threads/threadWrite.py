@@ -76,8 +76,8 @@ class threadWrite(ThreadWithStop):
         self.subscribe()
         self.Queue_Sending()
         if example:
-            self.i = 20.0
-            self.j = 0
+            self.i = -15.0
+            self.j = 0.0
             self.s = 10.0
             self.example()
 
@@ -150,8 +150,9 @@ class threadWrite(ThreadWithStop):
             try:
                 if self.pipeRecvRunningSignal.poll():
                     msg = self.pipeRecvRunningSignal.recv()
-                    print(f"ThreadWrite msg running: {msg}")
+                    print(f"Message: {msg}")
                     if msg["value"] == True:
+                        print("received engine start")
                         self.running = True
                     else:
                         self.running = False
@@ -177,6 +178,7 @@ class threadWrite(ThreadWithStop):
                         self.serialCom.write(command_msg.encode("ascii"))
                         self.logFile.write(command_msg)
                     elif self.pipeRecvSteer.poll():
+                        print("received steer command")
                         message = self.pipeRecvSteer.recv()
                         command = {"action": "2", "steerAngle": float(message["value"])}
                         command_msg = self.messageConverter.get_command(**command)

@@ -5,7 +5,7 @@ if __name__ == "__main__":
 
 from src.computer_vision.lineDetection.LineDetection import LineDetect
 from src.hardware.serialhandler.processSerialHandler import processSerialHandler
-from main import queueList
+from brain.main import queueList
 
 from threading import Thread, Timer
 from multiprocessing import Queue, Pipe
@@ -75,14 +75,35 @@ class Pid():
     def set_desired_angle(self, angle):
 
 
-        data = {"Type": "Steer", "value": angle}
-        queueList["General"].put(data)
+        queueList[SteerMotor.Queue.value].put(
+        {
+            "Owner": SteerMotor.Owner.value,
+            "msgID": SteerMotor.msgID.value,
+            "msgType": SteerMotor.msgType.value,
+            # "msgValue": "Type": "action": "2", "value": 12.0,
+            "msgValue": 15.0 #{
+            #     "action":"steer", 
+            #     "value": 15.0
+            # }
+        }
+    )
 
 
     def set_desired_speed(self, speed):
-
-        self.pipeSendRunningSignal.send({"Type": "Run", "value": True})
-        self.pipeSendSpeed.send({"Type": "Speed", "value": self.s})
+        
+        queueList[SpeedMotor.Queue.value].put(
+        {
+            "Owner": SpeedMotor.Owner.value,
+            "msgID": SpeedMotor.msgID.value,
+            "msgType": SpeedMotor.msgType.value,
+            # "msgValue": "Type": "action": "2", "value": 12.0,
+            "msgValue": 20.0 #{
+            #     "action":"steer", 
+            #     "value": 15.0
+            # }
+        }
+    )
+        
 
 
     def set_desired_speed(self):

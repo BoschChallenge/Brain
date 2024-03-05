@@ -37,7 +37,7 @@ import time
 
 # ===================================== PROCESS IMPORTS ==================================
 from src.gateway.processGateway import processGateway
-# from src.hardware.camera.processCamera import processCamera
+from src.hardware.camera.processCamera import processCamera
 from src.hardware.serialhandler.processSerialHandler import processSerialHandler
 from src.utils.PCcommunicationDemo.processPCcommunication import (
     processPCCommunicationDemo,
@@ -49,6 +49,8 @@ from src.utils.PCcommunicationDashBoard.processPCcommunication import (
 from src.utils.messages.allMessages import (
     SteerMotor,
     SignalRunning,
+    EngineRun,
+    SpeedMotor
 )
 
 from src.data.CarsAndSemaphores.processCarsAndSemaphores import processCarsAndSemaphores
@@ -105,7 +107,7 @@ if TrafficCommunication:
 
 # Initializing serial connection NUCLEO - > PI
 if SerialHandler:
-    processSerialHandler = processSerialHandler(queueList, logging)
+    processSerialHandler = processSerialHandler(queueList, logging, example=False)
     allProcesses.append(processSerialHandler)
 
 # ===================================== START PROCESSES ==================================
@@ -116,13 +118,18 @@ for process in allProcesses:
 
 time.sleep(5)
 
-queueList[SignalRunning.Queue.value].put(
+
+# for i in range(10):
+queueList[EngineRun.Queue.value].put(
         {
-            "Owner": SteerMotor.Owner.value,
-            "msgID": SteerMotor.msgID.value,
-            "msgType": SteerMotor.msgType.value,
+            "Owner": EngineRun.Owner.value,
+            "msgID": EngineRun.msgID.value,
+            "msgType": EngineRun.msgType.value,
             # "msgValue": "Type": "action": "2", "value": 12.0,
-            "msgValue": True
+            "msgValue": True #{
+            #     "action":"Run",
+            #     "value" : True
+            # }
         }
     )
 
@@ -132,9 +139,26 @@ queueList[SteerMotor.Queue.value].put(
             "msgID": SteerMotor.msgID.value,
             "msgType": SteerMotor.msgType.value,
             # "msgValue": "Type": "action": "2", "value": 12.0,
-            "msgValue": "steer", "value": 15.0
+            "msgValue": 15.0 #{
+            #     "action":"steer", 
+            #     "value": 15.0
+            # }
         }
     )
+
+queueList[SpeedMotor.Queue.value].put(
+        {
+            "Owner": SpeedMotor.Owner.value,
+            "msgID": SpeedMotor.msgID.value,
+            "msgType": SpeedMotor.msgType.value,
+            # "msgValue": "Type": "action": "2", "value": 12.0,
+            "msgValue": 20.0 #{
+            #     "action":"steer", 
+            #     "value": 15.0
+            # }
+        }
+    )
+
 
 print("Msgs sent!")
 

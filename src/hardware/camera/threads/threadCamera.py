@@ -28,7 +28,7 @@
 import cv2
 import threading
 import base64
-# import picamera2
+from picamera2 import Picamera2
 import time
 
 from multiprocessing import Pipe
@@ -60,7 +60,7 @@ class threadCamera(ThreadWithStop):
         self.pipeRecvConfig = pipeRecv
         self.pipeSendConfig = pipeSend
         self.debugger = debugger
-        self.frame_rate = 5
+        self.frame_rate = 60
         self.recording = False
         pipeRecvRecord, pipeSendRecord = Pipe(duplex=False)
         self.pipeRecvRecord = pipeRecvRecord
@@ -106,6 +106,7 @@ class threadCamera(ThreadWithStop):
     def stop(self):
         if self.recording:
             self.video_writer.release()
+        self.camera.stop()
         super(threadCamera, self).stop()
 
     # =============================== CONFIG ==============================================
@@ -129,101 +130,73 @@ class threadCamera(ThreadWithStop):
         """This function will run while the running flag is True. It captures the image from camera and make the required modifies and then it send the data to process gateway."""
         var = True
         while self._running:
-            try:
-                if self.pipeRecvRecord.poll():
-                    msg = self.pipeRecvRecord.recv()
-                    self.recording = msg["value"]
-                    if msg["value"] == False:
-                        self.video_writer.release()
-                    else:
-                        fourcc = cv2.VideoWriter_fourcc(
-                            *"MJPG"
-                        )  # You can choose different codecs, e.g., 'MJPG', 'XVID', 'H264', etc.
-                        self.video_writer = cv2.VideoWriter(
-                            "output_video" + str(time.time()) + ".avi",
-                            fourcc,
-                            self.frame_rate,
-                            (2048, 1080),
-                        )
-            except Exception as e:
-                print(e)
+            # try:
+            #     if self.pipeRecvRecord.poll():
+            #         msg = self.pipeRecvRecord.recv()
+            #         self.recording = msg["value"]
+            #         if msg["value"] == False:
+            #             self.video_writer.release()
+            #         else:
+            #             fourcc = cv2.VideoWriter_fourcc(
+            #                 *"MJPG"
+            #             )  # You can choose different codecs, e.g., 'MJPG', 'XVID', 'H264', etc.
+            #             self.video_writer = cv2.VideoWriter(
+            #                 "output_video" + str(time.time()) + ".avi",
+            #                 fourcc,
+            #                 self.frame_rate,
+            #                 (2048, 1080),
+            #             )
+            # except Exception as e:
+            #     print(e)
             if self.debugger == True:
                 self.logger.warning("getting image")
             request = self.camera.capture_array("main")
-            if var:
-                if self.recording == True:
-                    cv2_image = cv2.cvtColor(request, cv2.COLOR_RGB2BGR)
-                    self.video_writer.write(cv2_image)
-                request2 = self.camera.capture_array(
-                    "lores"
-                )  # Will capture an array that can be used by OpenCV library
-                request2 = request2[:360, :]
-                _, encoded_img = cv2.imencode(".jpg", request2)
-                _, encoded_big_img = cv2.imencode(".jpg", request)
-                image_data_encoded = base64.b64encode(encoded_img).decode("utf-8")
-                image_data_encoded2 = base64.b64encode(encoded_big_img).decode("utf-8")
-                self.queuesList[mainCamera.Queue.value].put(
-                    {
-                        "Owner": mainCamera.Owner.value,
-                        "msgID": mainCamera.msgID.value,
-                        "msgType": mainCamera.msgType.value,
-                        "msgValue": image_data_encoded2,
-                    }
-                )
-                self.queuesList[serialCamera.Queue.value].put(
-                    {
-                        "Owner": serialCamera.Owner.value,
-                        "msgID": serialCamera.msgID.value,
-                        "msgType": serialCamera.msgType.value,
-                        "msgValue": image_data_encoded,
-                    }
-                )
-            var = not var
+            #if var:
+            if self.recording == True:
+                cv2_image = cv2.cvtColor(request, cv2.COLOR_RGB2BGR)
+                self.video_writer.write(cv2_image)
+            request2 = self.camera.capture_array(
+                "lores"
+            )  # Will capture an array that can be used by OpenCV library
+            request2 = request2[:360, :]
+            _, encoded_img = cv2.imencode(".jpg", request2)
+            #_, encoded_big_img = cv2.imencode(".jpg", request)
+            image_data_encoded = base64.b64encode(encoded_img).decode("utf-8")
+            #image_data_encoded2 = base64.b64encode(encoded_big_img).decode("utf-8")
+            # self.queuesList[mainCamera.Queue.value].put(
+            #     {
+            #         "Owner": mainCamera.Owner.value,
+            #         "msgID": mainCamera.msgID.value,
+            #         "msgType": mainCamera.msgType.value,
+            #         "msgValue": image_data_encoded2,
+            #     }
+            # )
+            self.queuesList[serialCamera.Queue.value].put(
+                {
+                    "Owner": serialCamera.Owner.value,
+                    "msgID": serialCamera.msgID.value,
+                    "msgType": serialCamera.msgType.value,
+                    "msgValue": image_data_encoded,
+                }
+            )
+            #var = not var
 
     # =============================== START ===============================================
     def start(self):
         super(threadCamera, self).start()
 
     # ================================ INIT CAMERA ========================================
-
-    def gstreamer_pipeline(self,
-    sensor_id=0,
-    capture_width=1920,
-    capture_height=1080,
-    display_width=960,
-    display_height=540,
-    framerate=30,
-    flip_method=0,
-    ):
-    
-        return (
-            "nvarguscamerasrc sensor-id=%d ! "
-            "video/x-raw(memory:NVMM), width=(int)%d, height=(int)%d, framerate=(fraction)%d/1 ! "
-            "nvvidconv flip-method=%d ! "
-            "video/x-raw, width=(int)%d, height=(int)%d, format=(string)BGRx ! "
-            "videoconvert ! "
-            "video/x-raw, format=(string)BGR ! appsink"
-            % (
-                sensor_id,
-                capture_width,
-                capture_height,
-                framerate,
-                flip_method,
-                display_width,
-                display_height,
-            )
-        )
-
     def _init_camera(self):
         """This function will initialize the camera object. It will make this camera object have two chanels "lore" and "main"."""
-        # self.camera = picamera2.Picamera2()
-        self.camera = self.gstreamer_pipeline()
-        # config = self.camera.create_preview_configuration(
-        #     buffer_count=1,
-        #     queue=False,
-        #     main={"format": "XBGR8888", "size": (2048, 1080)},
-        #     lores={"size": (480, 360)},
-        #     encode="lores",
-        # )
-        # self.camera.configure(config)
-        # self.camera.start()
+
+        self.camera = Picamera2()
+
+        config = self.camera.create_preview_configuration(
+            buffer_count=1,
+            queue=False,
+            main={"format": "XBGR8888", "size": (2048, 1080)},
+            lores={"size": (480, 360)},
+            encode="lores",
+        )
+        self.camera.configure(config)
+        self.camera.start()
