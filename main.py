@@ -32,6 +32,7 @@ import sys
 sys.path.append(".")
 from multiprocessing import Queue, Event
 import logging
+import time
 
 
 # ===================================== PROCESS IMPORTS ==================================
@@ -44,6 +45,16 @@ from src.utils.PCcommunicationDemo.processPCcommunication import (
 from src.utils.PCcommunicationDashBoard.processPCcommunication import (
     processPCCommunicationDashBoard,
 )
+from src.regulation.pid import processPid
+
+from src.utils.messages.allMessages import (
+    lineInformation,
+    SteerMotor,
+    SignalRunning,
+    EngineRun,
+    SpeedMotor
+)
+
 from src.data.CarsAndSemaphores.processCarsAndSemaphores import processCarsAndSemaphores
 from src.data.TrafficCommunication.processTrafficCommunication import (
     processTrafficCommunication,
@@ -60,15 +71,16 @@ queueList = {
 
 logging = logging.getLogger()
 
-TrafficCommunication = True
-Camera = True
-PCCommunicationDemo = True
-CarsAndSemaphores = True
+TrafficCommunication = False
+Camera = False
+PCCommunicationDemo = False
+CarsAndSemaphores = False
 SerialHandler = True
+PID = True
 # ===================================== SETUP PROCESSES ==================================
 
 # Initializing gateway
-processGateway = processGateway(queueList, logging)
+processGateway = processGateway(queueList, logging, debugging=False)
 allProcesses.append(processGateway)
 
 # Initializing camera
@@ -98,13 +110,80 @@ if TrafficCommunication:
 
 # Initializing serial connection NUCLEO - > PI
 if SerialHandler:
-    processSerialHandler = processSerialHandler(queueList, logging)
+    processSerialHandler = processSerialHandler(queueList, logging, example=False)
     allProcesses.append(processSerialHandler)
+    
+# Initializing camera
+if PID:
+    processPid = processPid(queueList, logging)
+    allProcesses.append(processPid)
 
 # ===================================== START PROCESSES ==================================
 for process in allProcesses:
     process.daemon = True
     process.start()
+
+
+time.sleep(5)
+
+out_line_message = {
+        "length"      : 10,
+        "angle" : 1.57,
+        "right_line"   : True
+}
+
+queueList[lineInformation.Queue.value].put(
+    {
+        "Owner": lineInformation.Owner.value,
+        "msgID": lineInformation.msgID.value,
+        "msgType": lineInformation.msgType.value,
+        "msgValue": out_line_message,
+    }
+)
+
+
+# for i in range(10):
+# queueList[EngineRun.Queue.value].put(
+#         {
+#             "Owner": EngineRun.Owner.value,
+#             "msgID": EngineRun.msgID.value,
+#             "msgType": EngineRun.msgType.value,
+#             # "msgValue": "Type": "action": "2", "value": 12.0,
+#             "msgValue": True #{
+#             #     "action":"Run",
+#             #     "value" : True
+#             # }
+#         }
+#     )
+
+# queueList[SteerMotor.Queue.value].put(
+#         {
+#             "Owner": SteerMotor.Owner.value,
+#             "msgID": SteerMotor.msgID.value,
+#             "msgType": SteerMotor.msgType.value,
+#             # "msgValue": "Type": "action": "2", "value": 12.0,
+#             "msgValue": 15.0 #{
+#             #     "action":"steer", 
+#             #     "value": 15.0
+#             # }
+#         }
+#     )
+
+# queueList[SpeedMotor.Queue.value].put(
+#         {
+#             "Owner": SpeedMotor.Owner.value,
+#             "msgID": SpeedMotor.msgID.value,
+#             "msgType": SpeedMotor.msgType.value,
+#             # "msgValue": "Type": "action": "2", "value": 12.0,
+#             "msgValue": 20.0 #{
+#             #     "action":"steer", 
+#             #     "value": 15.0
+#             # }
+#         }
+#     )
+
+
+#print("Msgs sent!")
 
 # ===================================== STAYING ALIVE ====================================
 blocker = Event()

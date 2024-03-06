@@ -33,6 +33,7 @@ if __name__ == "__main__":
 
 from src.templates.workerprocess import WorkerProcess
 from src.hardware.camera.threads.threadCamera import threadCamera
+from src.hardware.camera.threads.threadDetection import threadDetection
 from multiprocessing import Pipe
 
 
@@ -73,8 +74,11 @@ class processCamera(WorkerProcess):
         camTh = threadCamera(
             self.pipeRecv, self.pipeSend, self.queuesList, self.logging, self.debugging
         )
+        detTh = threadDetection(
+            self.pipeRecv, self.pipeSend, self.queuesList, self.logging, self.debugging
+        )
         self.threads.append(camTh)
-
+        self.threads.append(detTh)
 
 # =================================== EXAMPLE =========================================
 #             ++    THIS WILL RUN ONLY IF YOU RUN THE CODE FROM HERE  ++
@@ -106,15 +110,25 @@ if __name__ == "__main__":
     process.start()
 
     time.sleep(4)
-    if debugg:
-        logger.warning("getting")
-    img = {"msgValue": 1}
-    while type(img["msgValue"]) != type(":text"):
-        img = queueList["General"].get()
-    image_data = base64.b64decode(img["msgValue"])
-    img = np.frombuffer(image_data, dtype=np.uint8)
-    image = cv2.imdecode(img, cv2.IMREAD_COLOR)
-    if debugg:
-        logger.warning("got")
-    cv2.imwrite("test.jpg", image)
+
+    try:
+        while True:
+            pass
+            # if debugg:
+            #     logger.warning("getting")
+            # img = {"msgValue": 1}
+            # while type(img["msgValue"]) != type(":text"):
+            #     img = queueList["General"].get()
+            # image_data = base64.b64decode(img["msgValue"])
+            # img = np.frombuffer(image_data, dtype=np.uint8)
+            # image = cv2.imdecode(img, cv2.IMREAD_COLOR)
+            # if debugg:
+            #     logger.warning("got")
+            # cv2.imshow("frame", image)
+            # cv2.waitKey(1)
+    except KeyboardInterrupt:
+        pass
+    except Exception as e:
+        print(e)
+
     process.stop()

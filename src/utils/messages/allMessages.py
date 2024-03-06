@@ -90,7 +90,7 @@ class SpeedMotor(Enum):
     msgType = "dictionary"
 
 
-# "action": "speed", "value": val}
+# {"action": "speed", "value": val}
 
 
 class SteerMotor(Enum):
