@@ -1,4 +1,3 @@
-
 import cv2
 import threading
 import base64
@@ -11,6 +10,9 @@ from src.utils.messages.allMessages import (
     lineInformation,
     signInformation,
     Config,
+    SpeedMotor,
+    SteerMotor,
+    Brake
 )
 from src.detection.model import SignDetect
 from src.detection.LineDetection import LineDetect
@@ -97,15 +99,118 @@ class threadDetection(ThreadWithStop):
                 image = cv2.imdecode(img, cv2.IMREAD_COLOR)
 
                 length,angle,right_line = self.lineDetect.detectLines(image)
-                sign_class, confidence, distance = self.signDetect.sign_detect(image)
-                
+
                 out_line_message = {
-                    "length"      : length,
-                    "angle" : angle,
-                    "right_line"   : right_line
+                    "length"     : length,
+                    "angle"      : angle,
+                    "right_line" : right_line
+                }
+            
+                sign_class, confidence, distance = self.signDetect.sign_detect(image)
+
+                out_sign_message = {
+                    "class"      : sign_class,
+                    "confidence" : confidence,
+                    "distance"   : distance
                 }
                 # cv2.imshow("frame", image)
                 # cv2.waitKey(1)
+
+                match sign_class:
+                    case 9:#"Stop"
+                        if(distance <= 25):
+                            self.queueList[Brake.Queue.value].put(
+                                {
+                                    "Owner": "Camera",
+                                    "msgID": Brake.msgID.value,
+                                    "msgType": Brake.msgType.value,
+                                    "msgValue": {"action": "speed", "value": 0.0},
+                                }
+                            )
+                    case 6: #"Crosswalk"
+                        self.queueList[SpeedMotor.Queue.value].put(
+                            {
+                                "Owner": "Camera",
+                                "msgID": SpeedMotor.msgID.value,
+                                "msgType": SpeedMotor.msgType.value,
+                                "msgValue": {"action": "speed", "value": 8.0},
+                                # The vehicle must visibly slow down on crosswalk
+                            }
+                        )
+                    case 7: #"Priority":
+                        pass
+                        # self.queueList["General"].put(
+                        #     {
+                        #         "Owner": "Camera",
+                        #         "msgID": 2,
+                        #         "msgType": "String",
+                        #         "msgValue": "This is a message",
+                        #         # The vehicle must go into the intersection without stopping at all
+                        #     }
+                        # )
+                    case 1: #"Highway entry":
+                        self.queueList[SpeedMotor.Queue.value].put(
+                            {
+                                "Owner": "Camera",
+                                "msgID": SpeedMotor.msgID.value,
+                                "msgType": SpeedMotor.msgType.value,
+                                "msgValue": {"action": "speed", "value": 25.0},
+                                # The vehicle must visibly increase its speed
+                            }
+                        )
+                    case 2: #"Highway end":
+                        self.queueList[SpeedMotor.Queue.value].put(
+                            {
+                                "Owner": "Camera",
+                                "msgID": SpeedMotor.msgID.value,
+                                "msgType": SpeedMotor.msgType.value,
+                                "msgValue": {"action": "speed", "value": 15.0},
+                                # The vehicle must return to normal speed
+                            }
+                        )
+                    case 4: #"One-way":
+                        pass
+                        # self.queueList["General"].put(
+                        #     {
+                        #         "Owner": "Camera",
+                        #         "msgID": 2,
+                        #         "msgType": "String",
+                        #         "msgValue": "This is the text2",
+                        #         # Signals a one-way road
+                        #     }
+                        # )
+                    case 8: #"roundabout":
+                        pass
+                        # self.queueList["General"].put(
+                        #     {
+                        #         "Owner": "Camera",
+                        #         "msgID": 2,
+                        #         "msgType": "String",
+                        #         "msgValue": "This is the text2",
+                        #         # Signals a roundabout
+                        #     }
+                        # )
+                    case 3: #"no-entry":
+                        pass
+                        # self.queueList["General"].put(
+                        #     {
+                        #         "Owner": "Camera",
+                        #         "msgID": 2,
+                        #         "msgType": "String",
+                        #         "msgValue": "This is the text2",
+                        #         # Signals a non-entry road
+                        #     }
+                        # )
+                    case 5: #Parking
+                        pass
+                        # self.queueList["General"].put(
+                        #     {
+                        #         "Owner": "Camera",
+                        #         "msgID": 2,
+                        #         "msgType": "String",
+                        #         "msgValue": "This is the text2",
+                        #     }
+                        # )
             
                 self.queuesList[lineInformation.Queue.value].put(
                     {
@@ -115,18 +220,17 @@ class threadDetection(ThreadWithStop):
                         "msgValue": out_line_message,
                     }
                 )
-                # self.queuesList[signInformation.Queue.value].put(
-                #     {
-                #         "Owner": signInformation.Owner.value,
-                #         "msgID": signInformation.msgID.value,
-                #         "msgType": signInformation.msgType.value,
-                #         "msgValue": out_line_message,
-                #     }
-                # )
+
+                self.queuesList[signInformation.Queue.value].put(
+                    {
+                        "Owner": signInformation.Owner.value,
+                        "msgID": signInformation.msgID.value,
+                        "msgType": signInformation.msgType.value,
+                        "msgValue": out_sign_message,
+                    }
+                )
 
     # =============================== START ===============================================
     def start(self):
         print("Starting thread detection")
         super(threadDetection, self).start()
-
-
