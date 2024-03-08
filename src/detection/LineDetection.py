@@ -76,6 +76,7 @@ class LineDetect:
         polygons2 = np.array([[(950,330),(1580,height),(1900,height), (1500,330)]])
         # polygons = np.array([[(0,int(height//2)),(0,height),(width,height), (width,int(height//2))]])
         # polygons = np.array([[(125,177),(68,height),(366,height), (305,177)]])
+        # polygons = np.array([[(0,0),(0,height),(width,height), (width,0)]])
         mask = np.zeros_like(image)
         cv2.fillPoly(mask,polygons1,255)
         cv2.fillPoly(mask,polygons2,255)
