@@ -44,9 +44,18 @@ class threadDetection(ThreadWithStop):
         self.signDetect = SignDetect()
         self.lineDetect = LineDetect()
 
+<<<<<<< HEAD
         self.mapx, self.mapy = None, None
         self.roi = None
 
+=======
+
+        self.mapx, self.mapy = None, None
+        self.roi = None
+
+        
+
+>>>>>>> d9215ae9894be337320fa1b49a08f05bd527d91d
     def subscribe(self):
         """Subscribe function. In this function we make all the required subscribe to process gateway"""
     
@@ -133,7 +142,11 @@ class threadDetection(ThreadWithStop):
                         "angle" : angle,
                         "right_line"   : right_line
                     }
+<<<<<<< HEAD
 
+=======
+                  
+>>>>>>> d9215ae9894be337320fa1b49a08f05bd527d91d
                     self.queuesList[lineInformation.Queue.value].put(
                         {
                             "Owner": lineInformation.Owner.value,
@@ -142,9 +155,12 @@ class threadDetection(ThreadWithStop):
                             "msgValue": out_line_message,
                         }
                     )
+<<<<<<< HEAD
 
                 #print(f"Detect time: {time.time() - start_time}")
                 
+=======
+>>>>>>> d9215ae9894be337320fa1b49a08f05bd527d91d
                 #stime.sleep(0.1)
                 # self.queuesList[signInformation.Queue.value].put(
                 #     {

@@ -38,7 +38,10 @@ from src.utils.messages.allMessages import (
 )
 from src.templates.threadwithstop import ThreadWithStop
 import time
+<<<<<<< HEAD
 from src.hardware.serialhandler.threads.threadWrite import Speeds
+=======
+>>>>>>> d9215ae9894be337320fa1b49a08f05bd527d91d
 
 
 class threadPid(ThreadWithStop):
@@ -182,6 +185,7 @@ class threadPid(ThreadWithStop):
                         "msgValue": True 
                     }
                     )
+<<<<<<< HEAD
                     self.set_desired_speed(Speeds.NORMAL.value)
                     first = False
                 
@@ -189,6 +193,13 @@ class threadPid(ThreadWithStop):
                 
             time.sleep(0.02)
                 #print(f"Time PID: {time.time()}")
+=======
+                    self.set_desired_speed(7.0)
+                    first = False
+                
+                self.set_desired_angle(-pid)
+                time.sleep(0.2)
+>>>>>>> d9215ae9894be337320fa1b49a08f05bd527d91d
 
 
     def set_brake(self):
