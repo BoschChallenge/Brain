@@ -32,11 +32,30 @@ from src.templates.threadwithstop import ThreadWithStop
 from src.utils.messages.allMessages import (
     SignalRunning,
     EngineRun,
-    Control,
     SteerMotor,
     SpeedMotor,
     Brake,
 )
+from enum import Enum
+import RPi.GPIO as GPIO 
+from adafruit_servokit import ServoKit
+import time
+
+
+MIN_IMP = [1000]
+MAX_IMP = [2000]
+MIN_ANG = [0]
+MAX_ANG = [180]
+
+class Speeds(Enum):
+    SLOW = 88
+    NORMAL = 78
+    FAST = 70
+    STOP = 90
+
+class Pins(Enum):
+    MOTOR = 12
+    SERVO = 18
 
 
 class threadWrite(ThreadWithStop):
@@ -50,36 +69,71 @@ class threadWrite(ThreadWithStop):
     """
 
     # ===================================== INIT =========================================
-    def __init__(self, queues, serialCom, logFile, example=False):
-        super(threadWrite, self).__init__()
+    def __init__(self, queues, logFile):
+        GPIO.setwarnings(False)
+        GPIO.setmode(GPIO.BCM)
+
+        self.pca = ServoKit(channels=16)
+        self.pca.servo[0].set_pulse_width_range(MIN_IMP[0], MAX_IMP[0])
+        self.pca.servo[1].set_pulse_width_range(MIN_IMP[0], MAX_IMP[0])
+        self.servo(0)  # Initialization
+        self.set_x_drive_mode(Speeds.STOP.value)
+
+        time.sleep(0.2)
+        # GPIO.setup(Pins.MOTOR.value, GPIO.OUT)
+        # GPIO.setup(Pins.SERVO.value, GPIO.OUT)
+
+        # frequency = 50
+ 
+        # self.pwm_steering = GPIO.PWM(Pins.SERVO.value, frequency)
+        # self.pwm_drive = GPIO.PWM(Pins.MOTOR.value, frequency)
+
+        # self.pwm_steering.start(7.5)
+        # self.pwm_drive.start(Speeds.STOP.value)
+
         self.queuesList = queues
-        self.serialCom = serialCom
         self.logFile = logFile
-        self.exampleFlag = example
-        self.messageConverter = MessageConverter()
+        #self.messageConverter = MessageConverter()
         self.running = False
+
         pipeRecvBreak, pipeSendBreak = Pipe(duplex=False)
         self.pipeRecvBreak = pipeRecvBreak
         self.pipeSendBreak = pipeSendBreak
+
         pipeRecvSpeed, pipeSendSpeed = Pipe(duplex=False)
         self.pipeRecvSpeed = pipeRecvSpeed
         self.pipeSendSpeed = pipeSendSpeed
+
         pipeRecvSteer, pipeSendSteer = Pipe(duplex=False)
         self.pipeRecvSteer = pipeRecvSteer
         self.pipeSendSteer = pipeSendSteer
-        pipeRecvControl, pipeSendControl = Pipe(duplex=False)
-        self.pipeRecvControl = pipeRecvControl
-        self.pipeSendControl = pipeSendControl
+
+        # pipeRecvControl, pipeSendControl = Pipe(duplex=False)
+        # self.pipeRecvControl = pipeRecvControl
+        # self.pipeSendControl = pipeSendControl
+
         pipeRecvRunningSignal, pipeSendRunningSignal = Pipe(duplex=False)
         self.pipeRecvRunningSignal = pipeRecvRunningSignal
         self.pipeSendRunningSignal = pipeSendRunningSignal
         self.subscribe()
-        self.Queue_Sending()
-        if example:
-            self.i = -15.0
-            self.j = 0.0
-            self.s = 10.0
-            self.example()
+
+        #self.Queue_Sending()
+
+        super(threadWrite, self).__init__()
+
+
+    def translate(self, value, leftMin, leftMax, rightMin, rightMax):
+        leftSpan = leftMax - leftMin
+        rightSpan = rightMax - rightMin
+        valueScaled = float(value - leftMin) / float(leftSpan)
+
+        return rightMin + (valueScaled * rightSpan)
+
+    def servo(self, angle):
+        self.pca.servo[0].angle = self.translate(angle, -25, 25, 0, 180)
+
+    def set_x_drive_mode(self, speed):
+        self.pca.servo[1].angle = speed
 
     def subscribe(self):
         """Subscribe function. In this function we make all the required subscribe to process gateway"""
@@ -94,17 +148,18 @@ class threadWrite(ThreadWithStop):
                 },
             }
         )
-        self.queuesList["Config"].put(
-            {
-                "Subscribe/Unsubscribe": "subscribe",
-                "Owner": Control.Owner.value,
-                "msgID": Control.msgID.value,
-                "To": {
-                    "receiver": "threadWrite",
-                    "pipe": self.pipeSendControl,
-                },
-            }
-        )
+        # self.queuesList["Config"].put(
+        #     {
+        #         "Subscribe/Unsubscribe": "subscribe",
+        #         "Owner": Control.Owner.value,
+        #         "msgID": Control.msgID.value,
+        #         "To": {
+        #             "receiver": "threadWrite",
+        #             "pipe": self.pipeSendControl,
+        #         },
+        #     }
+        # )
+        
         self.queuesList["Config"].put(
             {
                 "Subscribe/Unsubscribe": "subscribe",
@@ -156,45 +211,35 @@ class threadWrite(ThreadWithStop):
                         self.running = True
                     else:
                         self.running = False
-                        command = {"action": "1", "speed": 0.0}
-                        command_msg = self.messageConverter.get_command(**command)
-                        self.serialCom.write(command_msg.encode("ascii"))
-                        self.logFile.write(command_msg)
-                        command = {"action": "2", "steerAngle": 0.0}
-                        command_msg = self.messageConverter.get_command(**command)
-                        self.serialCom.write(command_msg.encode("ascii"))
-                        self.logFile.write(command_msg)
+                        self.set_x_drive_mode(Speeds.STOP.value)
+                        self.logFile.write("STOP MTOOR: 0.0")
+                        self.servo(0.0)
+                        self.logFile.write("SERVO: 0.0")
                 if self.running:
                     if self.pipeRecvBreak.poll():
                         message = self.pipeRecvBreak.recv()
-                        command = {"action": "1", "speed": float(message["value"])}
-                        command_msg = self.messageConverter.get_command(**command)
-                        self.serialCom.write(command_msg.encode("ascii"))
-                        self.logFile.write(command_msg)
+                        self.set_x_drive_mode(float(Speeds.STOP.value))
+                        self.logFile.write("STOP MOTOR: 0.0")
                     elif self.pipeRecvSpeed.poll():
                         message = self.pipeRecvSpeed.recv()
-                        command = {"action": "1", "speed": float(message["value"])}
-                        command_msg = self.messageConverter.get_command(**command)
-                        self.serialCom.write(command_msg.encode("ascii"))
-                        self.logFile.write(command_msg)
+                        self.set_x_drive_mode(float(message['value']))
+                        self.logFile.write(f"MOTOR SPEED: {float(message['value'])}")
                     elif self.pipeRecvSteer.poll():
-                        print("received steer command")
                         message = self.pipeRecvSteer.recv()
-                        command = {"action": "2", "steerAngle": float(message["value"])}
-                        command_msg = self.messageConverter.get_command(**command)
-                        self.serialCom.write(command_msg.encode("ascii"))
-                        self.logFile.write(command_msg)
-                    elif self.pipeRecvControl.poll():
-                        message = self.pipeRecvControl.recv()
-                        command = {
-                            "action": "9",
-                            "time": float(message["value"]["Time"]),
-                            "speed": float(message["value"]["Speed"]),
-                            "steer": float(message["value"]["Steer"]),
-                        }
-                        command_msg = self.messageConverter.get_command(**command)
-                        self.serialCom.write(command_msg.encode("ascii"))
-                        self.logFile.write(command_msg)
+                        #print(f"received steer command: {float(message['value'])}")
+                        self.servo(float(message['value']))
+                        self.logFile.write(f"SERVO: {float(message['value'])}")
+                    # elif self.pipeRecvControl.poll():
+                    #     message = self.pipeRecvControl.recv()
+                    #     command = {
+                    #         "action": "9",
+                    #         "time": float(message["value"]["Time"]),
+                    #         "speed": float(message["value"]["Speed"]),
+                    #         "steer": float(message["value"]["Steer"]),
+                    #     }
+                    #     command_msg = self.messageConverter.get_command(**command)
+                    #     self.serialCom.write(command_msg.encode("ascii"))
+                    #     self.logFile.write(command_msg)
             except Exception as e:
                 print(e)
 
@@ -205,28 +250,13 @@ class threadWrite(ThreadWithStop):
     # ==================================== STOP ==========================================
     def stop(self):
         """This function will close the thread and will stop the car."""
-        import time
+        print("SOTOPING WRITE")
+        self.set_x_drive_mode(Speeds.STOP.value)
+        self.servo(0)
 
-        self.exampleFlag = False
-        self.pipeSendSteer.send({"Type": "Steer", "value": 0.0})
-        self.pipeSendSpeed.send({"Type": "Speed", "value": 0.0})
-        time.sleep(2)
+        time.sleep(0.2)
+
         super(threadWrite, self).stop()
 
-    # ================================== EXAMPLE =========================================
-    def example(self):
-        """This function simulte the movement of the car."""
-        if self.exampleFlag:
-            self.pipeSendRunningSignal.send({"Type": "Run", "value": True})
-            self.pipeSendSpeed.send({"Type": "Speed", "value": self.s})
-            self.pipeSendSteer.send({"Type": "Steer", "value": self.i})
-            self.i += self.j
-            if self.i >= 21.0:
-                self.i = 21.0
-                self.s = self.i / 7
-                self.j *= -1
-            if self.i <= -21.0:
-                self.i = -21.0
-                self.s = self.i / 7
-                self.j *= -1.0
-            threading.Timer(0.01, self.example).start()
+
+

@@ -33,9 +33,12 @@ from src.utils.messages.allMessages import (
     SpeedMotor,
     SteerMotor,
     lineInformation,
+    Brake,
     Config,
 )
 from src.templates.threadwithstop import ThreadWithStop
+import time
+from src.hardware.serialhandler.threads.threadWrite import Speeds
 
 
 class threadPid(ThreadWithStop):
@@ -63,9 +66,9 @@ class threadPid(ThreadWithStop):
         #self.Queue_Sending()
         self.Configs()
         
-        self.DESIRED_DISTANCE = 400
-        self.MAX_PID = 22
-        self.Kp = 0.05
+        self.DESIRED_DISTANCE = 50
+        self.MAX_PID = 20
+        self.Kp = 0.5
 
     def subscribe(self):
         """Subscribe function. In this function we make all the required subscribe to process gateway"""
@@ -77,14 +80,14 @@ class threadPid(ThreadWithStop):
                 "To": {"receiver": "threadPid", "pipe": self.pipeSendLine},
             }
         )
-        self.queuesList["Config"].put(
-            {
-                "Subscribe/Unsubscribe": "subscribe",
-                "Owner": Config.Owner.value,
-                "msgID": Config.msgID.value,
-                "To": {"receiver": "threadCamera", "pipe": self.pipeSendConfig},
-            }
-        )
+        # self.queuesList["Config"].put(
+        #     {
+        #         "Subscribe/Unsubscribe": "subscribe",
+        #         "Owner": Config.Owner.value,
+        #         "msgID": Config.msgID.value,
+        #         "To": {"receiver": "threadCamera", "pipe": self.pipeSendConfig},
+        #     }
+        # )
 
     # def Queue_Sending(self):
     #     """Callback function for recording flag."""
@@ -145,8 +148,9 @@ class threadPid(ThreadWithStop):
     # ================================ RUN ================================================
     def run(self):
 
+        first = True
         while self._running:
-            while self.pipeRecvLine.poll():
+            if self.pipeRecvLine.poll():
                 print("Thread Pid")
                 message = self.pipeRecvLine.recv()
                 message = message["value"]
@@ -166,21 +170,36 @@ class threadPid(ThreadWithStop):
 
                 elif pid <= -self.MAX_PID:
                     pid = -self.MAX_PID
-
-                print(f"Steering angle: {pid}")
                 
-                self.queuesList[EngineRun.Queue.value].put(
+                print(f"Steering angle: {-pid}")
+                
+                if first:
+                    self.queuesList[EngineRun.Queue.value].put(
                     {
                         "Owner": EngineRun.Owner.value,
                         "msgID": EngineRun.msgID.value,
                         "msgType": EngineRun.msgType.value,
                         "msgValue": True 
                     }
-                )
+                    )
+                    self.set_desired_speed(Speeds.NORMAL.value)
+                    first = False
                 
                 self.set_desired_angle(pid)
-                self.set_desired_speed(15.0)
+                
+            time.sleep(0.02)
+                #print(f"Time PID: {time.time()}")
 
+
+    def set_brake(self):
+        self.queuesList[Brake.Queue.value].put(
+            {
+                "Owner": Brake.Owner.value,
+                "msgID": Brake.msgID.value,
+                "msgType": Brake.msgType.value,
+                "msgValue": 0.0
+            }
+        )
                  
     def set_desired_angle(self, angle):
         
@@ -195,21 +214,12 @@ class threadPid(ThreadWithStop):
 
 
     def set_desired_speed(self, speed):
-        # self.queuesList[EngineRun.Queue.value].put(
-        #     {
-        #         "Owner": EngineRun.Owner.value,
-        #         "msgID": EngineRun.msgID.value,
-        #         "msgType": EngineRun.msgType.value,
-        #         "msgValue": True 
-        #     }
-        # )
-        
         self.queuesList[SpeedMotor.Queue.value].put(
             {
                 "Owner": SpeedMotor.Owner.value,
                 "msgID": SpeedMotor.msgID.value,
                 "msgType": SpeedMotor.msgType.value,
-                "msgValue": speed #{
+                "msgValue": speed 
             }
         )
     # =============================== START ===============================================

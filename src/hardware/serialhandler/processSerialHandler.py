@@ -29,12 +29,11 @@ if __name__ == "__main__":
     import sys
 
     sys.path.insert(0, "../../..")
-import serial
 from src.templates.workerprocess import WorkerProcess
 from src.hardware.serialhandler.threads.filehandler import FileHandler
 from src.hardware.serialhandler.threads.threadRead import threadRead
 from src.hardware.serialhandler.threads.threadWrite import threadWrite
-
+from src.hardware.serialhandler.threads.threadTOF import threadTOF
 
 class processSerialHandler(WorkerProcess):
     """This process handle connection between NUCLEO and Raspberry PI.\n
@@ -46,21 +45,14 @@ class processSerialHandler(WorkerProcess):
     """
 
     # ===================================== INIT =========================================
-    def __init__(self, queueList, logging, debugging=False, example=False):
-        devFile = "/dev/ttyACM0"
+    def __init__(self, queueList, logging, debugging=False):
         logFile = "historyFile.txt"
 
-        # comm init
-        self.serialCom = serial.Serial(devFile, 19200, timeout=0.1)
-        self.serialCom.flushInput()
-        self.serialCom.flushOutput()
-
-        # log file init
+        self.tof_port = '/dev/ttyUSB0'
         self.historyFile = FileHandler(logFile)
         self.queuesList = queueList
         self.logger = logging
         self.debugging = debugging
-        self.example = example
         super(processSerialHandler, self).__init__(self.queuesList)
 
     # ===================================== STOP ==========================================
@@ -81,10 +73,11 @@ class processSerialHandler(WorkerProcess):
     # ===================================== INIT TH =================================
     def _init_threads(self):
         """Initializes the read and the write thread."""
-        readTh = threadRead(self.serialCom, self.historyFile, self.queuesList)
-        self.threads.append(readTh)
+        tofTh = threadTOF(self.tof_port, self.queuesList)
+        self.threads.append(tofTh)
+        
         writeTh = threadWrite(
-            self.queuesList, self.serialCom, self.historyFile, self.example
+            self.queuesList, self.historyFile
         )
         self.threads.append(writeTh)
 

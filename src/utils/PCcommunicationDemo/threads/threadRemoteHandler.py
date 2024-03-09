@@ -55,7 +55,7 @@ class threadRemoteHandler(ThreadWithStop):
         super(threadRemoteHandler, self).__init__()
         self.factory = FactoryDealer(queuesList)
         self.reactor = reactor
-        self.reactor.listenTCP(5001, self.factory)
+        self.reactor.listenTCP(5000, self.factory)
         self.queues = queuesList
         self.logging = logging
         self.pipeRecv = pipeRecv

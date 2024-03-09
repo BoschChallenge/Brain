@@ -129,40 +129,44 @@ class threadCamera(ThreadWithStop):
     def run(self):
         """This function will run while the running flag is True. It captures the image from camera and make the required modifies and then it send the data to process gateway."""
         var = True
+        #time.sleep(10)
+        start_time = time.time()
         while self._running:
             # try:
             #     if self.pipeRecvRecord.poll():
             #         msg = self.pipeRecvRecord.recv()
             #         self.recording = msg["value"]
-            #         if msg["value"] == False:
-            #             self.video_writer.release()
-            #         else:
-            #             fourcc = cv2.VideoWriter_fourcc(
-            #                 *"MJPG"
-            #             )  # You can choose different codecs, e.g., 'MJPG', 'XVID', 'H264', etc.
-            #             self.video_writer = cv2.VideoWriter(
-            #                 "output_video" + str(time.time()) + ".avi",
-            #                 fourcc,
-            #                 self.frame_rate,
-            #                 (2048, 1080),
-            #             )
+            #         # if msg["value"] == False:
+            #         #     self.video_writer.release()
+            #         # else:
+            #         #     fourcc = cv2.VideoWriter_fourcc(
+            #         #         *"MJPG"
+            #         #     )  # You can choose different codecs, e.g., 'MJPG', 'XVID', 'H264', etc.
+            #         #     self.video_writer = cv2.VideoWriter(
+            #         #         "output_video" + str(time.time()) + ".avi",
+            #         #         fourcc,
+            #         #         self.frame_rate,
+            #         #         (2048, 1080),
+            #         #     )
             # except Exception as e:
             #     print(e)
-            if self.debugger == True:
-                self.logger.warning("getting image")
-            request = self.camera.capture_array("main")
+            # if self.debugger == True:
+            #     self.logger.warning("getting image")
+            # request = self.camera.capture_array("main")
             #if var:
-            if self.recording == True:
-                cv2_image = cv2.cvtColor(request, cv2.COLOR_RGB2BGR)
-                self.video_writer.write(cv2_image)
+            # if self.recording == True:
+            #     cv2_image = cv2.cvtColor(request, cv2.COLOR_RGB2BGR)
+            #     #self.video_writer.write(cv2_image)
+            #request = cv2.cvtColor(request, cv2.COLOR_RGB2GRAY)
+
             request2 = self.camera.capture_array(
-                "lores"
+                "main"
             )  # Will capture an array that can be used by OpenCV library
-            request2 = request2[:360, :]
-            _, encoded_img = cv2.imencode(".jpg", request2)
+            # request2 = request2[:360, :]
+            _, encoded_img = cv2.imencode(".png", request2)
             #_, encoded_big_img = cv2.imencode(".jpg", request)
             image_data_encoded = base64.b64encode(encoded_img).decode("utf-8")
-            #image_data_encoded2 = base64.b64encode(encoded_big_img).decode("utf-8")
+            #mage_data_encoded2 = base64.b64encode(encoded_big_img).decode("utf-8")
             # self.queuesList[mainCamera.Queue.value].put(
             #     {
             #         "Owner": mainCamera.Owner.value,
@@ -179,6 +183,9 @@ class threadCamera(ThreadWithStop):
                     "msgValue": image_data_encoded,
                 }
             )
+
+            time.sleep(0.05)
+            #print(f"Time: {time.time() - start_time}")
             #var = not var
 
     # =============================== START ===============================================
@@ -194,7 +201,7 @@ class threadCamera(ThreadWithStop):
         config = self.camera.create_preview_configuration(
             buffer_count=1,
             queue=False,
-            main={"format": "XBGR8888", "size": (2048, 1080)},
+            main={"format": "XBGR8888", "size": (480, 360)}, #(2048, 1080)},
             lores={"size": (480, 360)},
             encode="lores",
         )
