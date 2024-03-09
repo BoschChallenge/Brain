@@ -178,8 +178,9 @@ class threadWrite(ThreadWithStop):
                         self.serialCom.write(command_msg.encode("ascii"))
                         self.logFile.write(command_msg)
                     elif self.pipeRecvSteer.poll():
-                        print("received steer command")
                         message = self.pipeRecvSteer.recv()
+                        print(f"received steer command: {float(message['value'])}")
+
                         command = {"action": "2", "steerAngle": float(message["value"])}
                         command_msg = self.messageConverter.get_command(**command)
                         self.serialCom.write(command_msg.encode("ascii"))

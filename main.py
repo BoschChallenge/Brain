@@ -49,10 +49,12 @@ from src.regulation.pid import processPid
 
 from src.utils.messages.allMessages import (
     lineInformation,
-    SteerMotor,
+    SteerMotor,                
     SignalRunning,
     EngineRun,
-    SpeedMotor
+    SpeedMotor,
+    Record,
+    Brake
 )
 
 from src.data.CarsAndSemaphores.processCarsAndSemaphores import processCarsAndSemaphores
@@ -76,7 +78,7 @@ Camera = False
 PCCommunicationDemo = False
 CarsAndSemaphores = False
 SerialHandler = True
-PID = True
+PID = False
 # ===================================== SETUP PROCESSES ==================================
 
 # Initializing gateway
@@ -124,23 +126,89 @@ for process in allProcesses:
     process.start()
 
 
-time.sleep(5)
+# time.sleep(2)
 
-out_line_message = {
-        "length"      : 10,
-        "angle" : 1.57,
-        "right_line"   : True
-}
+# queueList[EngineRun.Queue.value].put(
+#     {
+#         "Owner": EngineRun.Owner.value,
+#         "msgID": EngineRun.msgID.value,
+#         "msgType": EngineRun.msgType.value,
+#         "msgValue": True 
+#     }
+# )
 
-queueList[lineInformation.Queue.value].put(
-    {
-        "Owner": lineInformation.Owner.value,
-        "msgID": lineInformation.msgID.value,
-        "msgType": lineInformation.msgType.value,
-        "msgValue": out_line_message,
-    }
-)
+# queueList[SpeedMotor.Queue.value].put(
+#     {
+#         "Owner": SpeedMotor.Owner.value,
+#         "msgID": SpeedMotor.msgID.value,
+#         "msgType": SpeedMotor.msgType.value,
+#         "msgValue": 7.0
+#     }
+# )
 
+# queueList[SteerMotor.Queue.value].put(
+#     {
+#         "Owner": SteerMotor.Owner.value,
+#         "msgID": SteerMotor.msgID.value,
+#         "msgType": SteerMotor.msgType.value,
+#         "msgValue": 0.0
+#     }
+# )
+
+                 
+# time.sleep(10)
+
+# queueList[Brake.Queue.value].put(
+#     {
+#         "Owner": Brake.Owner.value,
+#         "msgID": Brake.msgID.value,
+#         "msgType": Brake.msgType.value,
+#         "msgValue": 0.0
+#     }
+# )
+                 
+ 
+
+# queueList[Record.Queue.value].put(
+#     {
+#         "Owner": Record.Owner.value,
+#         "msgID": Record.msgID.value,
+#         "msgType": Record.msgType.value,
+#         "msgValue":True
+#     }
+# )
+
+# out_line_message = {
+#         "length"      : 10,
+#         "angle" : 1.57,
+#         "right_line"   : True
+# }
+
+# queueList[lineInformation.Queue.value].put(
+#     {
+#         "Owner": lineInformation.Owner.value,
+#         "msgID": lineInformation.msgID.value,
+#         "msgType": lineInformation.msgType.value,
+#         "msgValue": out_line_message,
+#     }
+# )
+
+# time.sleep(10)
+
+# out_line_message = {
+#         "length"      : 400,
+#         "angle" : 1,
+#         "right_line"   : True
+# }
+
+# queueList[lineInformation.Queue.value].put(
+#     {
+#         "Owner": lineInformation.Owner.value,
+#         "msgID": lineInformation.msgID.value,
+#         "msgType": lineInformation.msgType.value,
+#         "msgValue": out_line_message,
+#     }
+# )
 
 # for i in range(10):
 # queueList[EngineRun.Queue.value].put(

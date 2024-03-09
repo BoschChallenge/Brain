@@ -35,7 +35,7 @@ class LineDetect:
     def warpImage(self,img):
         h = img.shape[0]
         w = img.shape[1]
-        points = self.createPoints(w,h,0.2,0.55) #adjust parameters
+        points = self.createPoints(w,h,0.0,0.55) #adjust parameters
         pts1 = np.float32(points)
         pts2 = np.float32([[0,0],[w,0],[0,h],[w,h]])
         matrix = cv2.getPerspectiveTransform(pts1,pts2)
@@ -43,22 +43,20 @@ class LineDetect:
 
         return imgWarp
         
-    
+    def det(self, a, b):
+        return a[0] * b[1] - a[1] * b[0]
 
     def line_intersection(self,line1, line2):
         xdiff = (line1[0][0] - line1[1][0], line2[0][0] - line2[1][0])
         ydiff = (line1[0][1] - line1[1][1], line2[0][1] - line2[1][1])
 
-        def det(a, b):
-            return a[0] * b[1] - a[1] * b[0]
-
-        div = det(xdiff, ydiff)
+        div = self.det(xdiff, ydiff)
         if div == 0:
             return 0,0
 
-        d = (det(*line1), det(*line2))
-        x = det(d, xdiff) / div
-        y = det(d, ydiff) / div
+        d = (self.det(*line1), self.det(*line2))
+        x = self.det(d, xdiff) / div
+        y = self.det(d, ydiff) / div
         return x, y
 
     def canny_func(self,image):
@@ -70,16 +68,15 @@ class LineDetect:
 
     def region_of_interest(self,image):
         height = image.shape[0]
-        # width = image.shape[1]
-        polygons1 = np.array([[(250,330),(50,height),(220,height), (950,330)]])
+        width = image.shape[1]
+        polygons1 = np.array([[(0,0),(0,height),(width,height), (width,0)]])
         # polygons2 = np.array([[(1200,750),(1500,height),(1800,height), (1400,750)]])
-        polygons2 = np.array([[(950,330),(1580,height),(1900,height), (1500,330)]])
+        # polygons2 = np.array([[(950,330),(1580,height),(1900,height), (1500,330)]])
         # polygons = np.array([[(0,int(height//2)),(0,height),(width,height), (width,int(height//2))]])
         # polygons = np.array([[(125,177),(68,height),(366,height), (305,177)]])
-        # polygons = np.array([[(0,0),(0,height),(width,height), (width,0)]])
         mask = np.zeros_like(image)
         cv2.fillPoly(mask,polygons1,255)
-        cv2.fillPoly(mask,polygons2,255)
+        # cv2.fillPoly(mask,polygons2,255)
         masked_image = cv2.bitwise_and(image,mask)
         return masked_image
 
@@ -187,9 +184,11 @@ class LineDetect:
                         length = pow(temp,0.5)
                         angl = self.calculateAngle(((0,height),(width,height)),((rx1,ry1),(rx2,ry2)))
 
-                        combo_image = cv2.addWeighted(img,0.5,line_image,1,1)
-                        cv2.imshow('Result',combo_image)
-                        return length,angl,True
+                        #combo_image = cv2.addWeighted(img,0.5,line_image,1,1)
+                        # cv2.imshow('Result',combo_image)
+                        # cv2.waitKey(1)
+
+                        return length,angl,True #, combo_image
 
                 elif left_exist:
                     rx1,ry1,rx2,ry2 = averaged_lines[0].reshape(4)
@@ -200,9 +199,11 @@ class LineDetect:
                         length = pow(temp,0.5)
                         angl = self.calculateAngle(((0,height),(width,height)),((rx1,ry1),(rx2,ry2)))
 
-                        combo_image = cv2.addWeighted(img,0.5,line_image,1,1)
-                        cv2.imshow('Result',combo_image)
-                        return length,angl,False
+                        #combo_image = cv2.addWeighted(img,0.5,line_image,1,1)
+                        # cv2.imshow('Result',combo_image)
+                        # cv2.waitKey(1)
+
+                        return length,angl,False #, combo_image
 
             else:
                 rx1,ry1,rx2,ry2 = averaged_lines[1].reshape(4)
@@ -213,14 +214,19 @@ class LineDetect:
                     length = pow(temp,0.5)
                     angl = self.calculateAngle(((0,height),(width,height)),((rx1,ry1),(rx2,ry2)))
 
-                    combo_image = cv2.addWeighted(img,0.5,line_image,1,1)
-                    cv2.imshow('Result',combo_image)
-                    return length,angl,True
+                    #combo_image = cv2.addWeighted(img,0.5,line_image,1,1)
+                    # cv2.imshow('Result',combo_image)
+                    # cv2.waitKey(1)
+                    #cv2.destroyWindow('Result')
+                    return length,angl,True #, combo_image
             
             return 0,0,False
                 
         else:
             line_image = np.zeros_like(img)
-            combo_image = cv2.addWeighted(img,0.5,line_image,1,1)
-            cv2.imshow('Result',combo_image)
-            return 0,0,False
+            #combo_image = cv2.addWeighted(img,0.5,line_image,1,1)
+            # cv2.imshow('Result',combo_image)
+            # cv2.waitKey(1)
+            #cv2.destroyWindow('Result')
+
+            return 0,0,False #, combo_image

@@ -28,6 +28,23 @@
 from enum import Enum
 
 
+####################################### processDetection #######################################
+class lineInformation(Enum):
+    Queue = "General"
+    Owner = "threadDetection"
+    msgID = 1
+    msgType = "dictionary"
+
+# {"distance" : float, "angle" : float, "line" : bool}
+
+class signInformation(Enum):
+    Queue = "General"
+    Owner = "threadDetection"
+    msgID = 2
+    msgType = "dictionary"
+
+# {"class" : int16, "confidence" : float, "distance" : float}
+
 ####################################### processCamera #######################################
 class mainCamera(Enum):
     Queue = "General"
@@ -90,7 +107,7 @@ class SpeedMotor(Enum):
     msgType = "dictionary"
 
 
-# {"action": "speed", "value": val}
+# "action": "speed", "value": val}
 
 
 class SteerMotor(Enum):
